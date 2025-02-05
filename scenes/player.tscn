@@ -1,0 +1,65 @@
+[gd_scene load_steps=10 format=3 uid="uid://bo7mnbp1r0wxq"]
+
+[ext_resource type="Texture2D" uid="uid://nb4wh53djmaw" path="res://assets/Main Characters/Mask Dude/Idle (32x32).png" id="1_gf3pp"]
+[ext_resource type="Script" path="res://scripts/player.gd" id="1_w0nxf"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_45mie"]
+atlas = ExtResource("1_gf3pp")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wltba"]
+atlas = ExtResource("1_gf3pp")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qaoto"]
+atlas = ExtResource("1_gf3pp")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_blv44"]
+atlas = ExtResource("1_gf3pp")
+region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_g713l"]
+atlas = ExtResource("1_gf3pp")
+region = Rect2(128, 0, 32, 32)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_435st"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_45mie")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wltba")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qaoto")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_blv44")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_g713l")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 10.0
+}]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_2sn51"]
+radius = 12.0
+
+[node name="Player" type="CharacterBody2D"]
+script = ExtResource("1_w0nxf")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+position = Vector2(-2, -21)
+scale = Vector2(1.28947, 1.31068)
+sprite_frames = SubResource("SpriteFrames_435st")
+animation = &"idle"
+autoplay = "idle"
+frame_progress = 0.408649
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(-1, -14)
+shape = SubResource("CircleShape2D_2sn51")
