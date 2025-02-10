@@ -1,82 +1,105 @@
 extends CharacterBody2D
 
-# Movement Constants
+# Movement constants
 const SPEED = 300.0
 const ACCELERATION = 800.0
 const DECELERATION = 1000.0
-const AIR_ACCELERATION = 600.0
+const AIR_ACCELERATION = 600.0  # Less control in air
+const TURN_SPEED = 1200.0  # Controls how fast the player turns around
+const MAX_SPEED = 500.0  # Upper speed limit
+const INSTANT_MOVE = true  # If true, instantly sets movement direction
 
-# Jumping Constants
+# Jump physics
 const JUMP_HEIGHT = 70.0
-const JUMP_DURATION = 0.3
-const JUMP_VELOCITY = -(2 * JUMP_HEIGHT) / JUMP_DURATION
-const DOWN_GRAVITY = 2000.0
-const UP_GRAVITY = 1500.0  # Lower gravity when going up
-const MAX_JUMPS = 2  # Double Jump Support
+const DOWN_GRAVITY = 1500.0  # Adjusted for better jump arc
+const JUMP_VELOCITY = -sqrt(2 * DOWN_GRAVITY * JUMP_HEIGHT)  # Physics-based jump strength
+const JUMP_CUTOFF = 0.75  # Controls variable jump height
 
-# Camera Settings
-const CAMERA_DAMPING = 5.0
-const LOOKAHEAD_DISTANCE = Vector2(100, 50)
-const ZOOM_NORMAL = Vector2(1.0, 1.0)
-const ZOOM_RUNNING = Vector2(1.2, 1.2)
+# Double Jump
+const MAX_JUMPS = 2
+const DOUBLE_JUMP_VELOCITY = JUMP_VELOCITY * 0.9  # Slightly weaker second jump
 
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
-@onready var camera: Camera2D = $Camera2D
+@onready var run_effect = $RunEffect
+@onready var jump_effect = $JumpEffect
+@onready var land_effect = $LandEffect
 
 var jumps_left = MAX_JUMPS  # Tracks available jumps
-var is_jumping = false
+var was_in_air = false
 
-func _ready() -> void:
-	# Configure Camera2D
-	camera.offset = Vector2.ZERO
-	camera.position_smoothing_enabled = true
-	camera.position_smoothing_speed = CAMERA_DAMPING
-	camera.zoom = ZOOM_NORMAL
-	camera.drag_margin_h_enabled = false  # Disable horizontal drag margins
-	camera.drag_margin_v_enabled = false  # Disable vertical drag margins
-	camera.ignore_rotation = true  # Ignore player rotation
-	camera.ignore_jumps = true  # Ignore jumps when following player
-	camera.zoom = ZOOM_NORMAL
+func _ready():
+	# Ensure particle effects are set up properly
+	jump_effect.one_shot = true
+	land_effect.one_shot = true
+	run_effect.one_shot = false  # Running effect should be continuous
 
 func _physics_process(delta: float) -> void:
 	# Gravity
 	if not is_on_floor():
-		velocity.y += (DOWN_GRAVITY if velocity.y > 0 else UP_GRAVITY) * delta
+		velocity.y += DOWN_GRAVITY * delta
 	else:
+		if was_in_air:
+			land_effect.restart()  # Play landing effect when touching ground
+			land_effect.emitting = true
 		jumps_left = MAX_JUMPS  # Reset jumps on landing
 
-	# Jump Logic
+	was_in_air = not is_on_floor()
+
+	# Jump logic
 	if Input.is_action_just_pressed("ui_accept") and jumps_left > 0:
-		velocity.y = JUMP_VELOCITY
+		jump_effect.restart()  # Ensure jump effect restarts
+		jump_effect.emitting = true
+		
+		if jumps_left == MAX_JUMPS:
+			velocity.y = JUMP_VELOCITY  # Normal jump
+		else:
+			velocity.y = DOUBLE_JUMP_VELOCITY  # Weaker double jump
+		
 		jumps_left -= 1
-		is_jumping = true
 
-	# Jump Cutoff (Variable Height)
+	# Jump Cutoff (Variable Jump Height)
 	if Input.is_action_just_released("ui_accept") and velocity.y < 0:
-		velocity.y *= 0.5  # Cut jump height
+		velocity.y *= JUMP_CUTOFF
 
-	# Get movement direction
+	# Get movement input
 	var direction := Input.get_axis("ui_left", "ui_right")
 
-	# Flip sprite
+	# Flip sprite based on direction
 	if direction > 0:
 		animated_sprite.flip_h = false
 	elif direction < 0:
 		animated_sprite.flip_h = true
 
-	# Play animation
-	if direction == 0:
-		animated_sprite.play("idle")
+	# Animation handling
+	if is_on_floor():
+		if direction == 0:
+			animated_sprite.play("idle")
+			run_effect.emitting = false  # Stop running effect
+		else:
+			animated_sprite.play("run")
+			run_effect.emitting = true   # Play running effect
 	else:
-		animated_sprite.play("run")
+		animated_sprite.play("jump")  # Use "fall" if falling
 
-	# Acceleration & Deceleration
-	if direction != 0:
-		velocity.x = move_toward(velocity.x, direction * SPEED, (AIR_ACCELERATION if not is_on_floor() else ACCELERATION) * delta)
+	# Movement Logic
+	if INSTANT_MOVE:
+		velocity.x = direction * SPEED  # Instantly set speed
 	else:
-		velocity.x = move_toward(velocity.x, 0, DECELERATION * delta)
+		if direction != 0:
+			if is_on_floor():
+				if (velocity.x > 0 and direction < 0) or (velocity.x < 0 and direction > 0):
+					velocity.x = move_toward(velocity.x, direction * SPEED, TURN_SPEED * delta)
+				else:
+					velocity.x = move_toward(velocity.x, direction * SPEED, ACCELERATION * delta)
+			else:
+				velocity.x = move_toward(velocity.x, direction * SPEED, AIR_ACCELERATION * delta)
+		else:
+			if is_on_floor():
+				velocity.x = move_toward(velocity.x, 0, DECELERATION * delta)
+			else:
+				velocity.x = move_toward(velocity.x, 0, AIR_ACCELERATION * delta)
 
-	# Update Camera Zoom
-	camera.zoom = ZOOM_RUNNING if direction != 0 else ZOOM_NORMAL
+	# Apply max speed limit
+	velocity.x = clamp(velocity.x, -MAX_SPEED, MAX_SPEED)
 
 	move_and_slide()

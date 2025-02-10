@@ -166,3 +166,12 @@ frame_progress = 0.361655
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(-1, -14)
 shape = SubResource("CircleShape2D_2sn51")
+
+[node name="RunEffect" type="CPUParticles2D" parent="."]
+texture_filter = 1
+
+[node name="JumpEffect" type="CPUParticles2D" parent="."]
+texture_filter = 1
+
+[node name="LandEffect" type="CPUParticles2D" parent="."]
+texture_filter = 1
